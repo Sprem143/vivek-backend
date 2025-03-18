@@ -4,6 +4,7 @@ const nodemailer = require('nodemailer');
 const jwt= require('jsonwebtoken');
 require('dotenv').config();
 const security_key= 'admin_panel';
+const Homepage = require('./pagemodel/home')
 
 
 
@@ -80,14 +81,12 @@ exports.getprofile = async (req, res) => {
       return res.status(401).json({ msg: "Authorization header missing" });
     }
     const token = authHeader.split(' ')[1];
-    console.log(token)
     if (!token) {
       return res.status(401).json({status:false, msg: "Token missing from authorization header" });
     }
     let admin;
     try {
       admin = jwt.verify(token, security_key); 
-      console.log(admin)
     } catch (err) {
       if (err.name === 'TokenExpiredError') {
         return res.status(401).json({status:false, msg: "Session expired" });
@@ -135,5 +134,53 @@ if(admin){
     return res.status(500).json({ msg: "An unexpected error occurred", error: err.message });
   }
 }
+
+exports.changeheading=async(req,res)=>{
+  try{
+     const {heading,contentid}= req.body;
+     let count = await Homepage.countDocuments()
+     if(count==0){
+      let homeheading = new Homepage({heading:heading})
+      await homeheading.save()
+      .then(()=> res.status(200).json({status:true}))
+      .catch((err)=> res.status(500).json({status:false, msg:err}))
+     }else{
+         await Homepage.findOneAndUpdate(
+          {_id:contentid},
+          {$set:{heading: heading}},
+          {new:true}
+         )
+         .then(()=> res.status(200).json({status:true}))
+      .catch((err)=> res.status(500).json({status:false, msg:err}))
+     }
+
+  }catch(err){
+    console.log(err)
+    res.status(500).json({status:false, msg:err})
+  }
+}
+
+exports.getcontent=async(req,res)=>{
+  try{
+        const page = req.body.page;
+        if(page == 'home'){
+         let homecontent= await Homepage.find();
+         homecontent=homecontent[0];
+          return res.status(200).json({status:true, data:homecontent})
+        }
+  }catch(err){
+    console.log(err)
+    res.status(500).json({status:false, msg:err})
+  }
+}
+
+// exports.changeheading=async(req,res)=>{
+//   try{
+
+//   }catch(err){
+//     console.log(err)
+//     res.status(500).json({status:false, msg:err})
+//   }
+// }
 
 
